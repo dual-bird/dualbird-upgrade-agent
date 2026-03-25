@@ -1,6 +1,6 @@
 """Seed fixture: PySpark pipeline reading non-parquet formats (CSV, JSON)."""
+
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col
 
 spark = SparkSession.builder.appName("mixed_formats").getOrCreate()
 
@@ -13,10 +13,7 @@ json_df = spark.read.json("s3://data/events.json")
 joined = csv_df.join(json_df, csv_df.id == json_df.user_id)
 
 result = (
-    joined
-    .groupBy("category")
-    .agg({"amount": "sum", "id": "count"})
-    .orderBy("category")
+    joined.groupBy("category").agg({"amount": "sum", "id": "count"}).orderBy("category")
 )
 
 # Parquet write — FPGA-accelerable

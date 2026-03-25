@@ -10,21 +10,21 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-from dualbird_upgrade_agent.parser.event_log import SparkPlanNode
 from dualbird_upgrade_agent.matrix.support import (
-    SupportVerdict,
-    check_operator,
-    check_agg_function,
-    check_window_function,
-    check_join_type,
-    check_data_type,
     UNSUPPORTED_EXPRESSIONS,
+    check_agg_function,
+    check_data_type,
+    check_join_type,
+    check_operator,
+    check_window_function,
 )
+from dualbird_upgrade_agent.parser.event_log import SparkPlanNode
 
 
 @dataclass
 class AnalyzedOperator:
     """A plan node with its DualBird support verdict."""
+
     node_name: str
     simple_string: str
     category: str
@@ -38,6 +38,7 @@ class AnalyzedOperator:
 @dataclass
 class PlanAnalysis:
     """Full analysis of a SQL execution's physical plan."""
+
     operators: list[AnalyzedOperator] = field(default_factory=list)
     total_operators: int = 0
     accelerable_operators: int = 0
@@ -79,8 +80,15 @@ def _extract_join_info(simple_string: str) -> tuple[str | None, bool]:
     # "SortMergeJoin [col1#5], [col2#10], Inner"
     # "SortMergeJoin [col1#5], [col2#10], Inner, (a#1 > b#2)"
     join_type = None
-    for jt in ("Inner", "LeftSemi", "LeftAnti", "LeftOuter",
-                "RightOuter", "FullOuter", "Cross"):
+    for jt in (
+        "Inner",
+        "LeftSemi",
+        "LeftAnti",
+        "LeftOuter",
+        "RightOuter",
+        "FullOuter",
+        "Cross",
+    ):
         if jt in simple_string:
             join_type = jt
             break
@@ -89,7 +97,7 @@ def _extract_join_info(simple_string: str) -> tuple[str | None, bool]:
     has_condition = False
     if join_type:
         idx = simple_string.find(join_type)
-        after = simple_string[idx + len(join_type):].strip().strip(",").strip()
+        after = simple_string[idx + len(join_type) :].strip().strip(",").strip()
         # If there's something after the join type that looks like a condition
         if after and after.startswith("("):
             has_condition = True
@@ -180,7 +188,13 @@ def analyze_node(node: SparkPlanNode) -> AnalyzedOperator:
             types_ok = False
 
     # UDF detection in any operator
-    for udf_marker in ("PythonUDF", "ScalaUDF", "HiveGenericUDF", "HiveSimpleUDF", "JavaUDF"):
+    for udf_marker in (
+        "PythonUDF",
+        "ScalaUDF",
+        "HiveGenericUDF",
+        "HiveSimpleUDF",
+        "JavaUDF",
+    ):
         if udf_marker in node.simple_string or udf_marker in node.node_name:
             fallback_reasons.append(f"{udf_marker} detected — cannot accelerate")
             expressions_ok = False
@@ -200,7 +214,9 @@ def analyze_node(node: SparkPlanNode) -> AnalyzedOperator:
     return AnalyzedOperator(
         node_name=verdict.operator_name,
         simple_string=node.simple_string,
-        category=verdict.category if verdict.category != "passthrough" else _infer_passthrough_category(node),
+        category=verdict.category
+        if verdict.category != "passthrough"
+        else _infer_passthrough_category(node),
         accelerable=is_accelerable,
         expressions_supported=expressions_ok,
         types_supported=types_ok,
@@ -240,10 +256,12 @@ def analyze_plan(root: SparkPlanNode) -> PlanAnalysis:
         else:
             analysis.unsupported_operators += 1
             for reason in op.fallback_reasons:
-                analysis.all_fallback_reasons.append({
-                    "operator": op.node_name,
-                    "reason": reason,
-                })
+                analysis.all_fallback_reasons.append(
+                    {
+                        "operator": op.node_name,
+                        "reason": reason,
+                    }
+                )
 
         for child in op.children:
             walk(child)

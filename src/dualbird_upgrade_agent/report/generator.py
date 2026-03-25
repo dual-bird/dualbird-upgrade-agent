@@ -5,7 +5,7 @@ Generate JSON report from acceleration analysis.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -39,7 +39,9 @@ def generate_report(
             total_verdicts[v] = total_verdicts.get(v, 0) + count
 
     total_stages = sum(total_verdicts.values())
-    coverage = (total_verdicts["full"] + total_verdicts["partial"]) / max(total_stages, 1)
+    coverage = (total_verdicts["full"] + total_verdicts["partial"]) / max(
+        total_stages, 1
+    )
 
     # Build tasks
     tasks = []
@@ -47,28 +49,32 @@ def generate_report(
         stages = []
         for sql_est in app_est.sql_executions:
             for se in sql_est.stages:
-                stages.append({
-                    "stage_id": se.stage_id,
-                    "duration_ms": se.duration_ms,
-                    "executor_time_ms": se.executor_time_ms,
-                    "verdict": se.verdict,
-                    "inferred_profile": se.inferred_profile,
-                    "accelerable_categories": se.accelerable_categories,
-                    "blocked_categories": se.blocked_categories,
-                    "operators": se.operators,
-                    "metrics": se.metrics,
-                    "fallback_reasons": se.fallback_reasons,
-                    "category_breakdown": se.category_breakdown,
-                })
+                stages.append(
+                    {
+                        "stage_id": se.stage_id,
+                        "duration_ms": se.duration_ms,
+                        "executor_time_ms": se.executor_time_ms,
+                        "verdict": se.verdict,
+                        "inferred_profile": se.inferred_profile,
+                        "accelerable_categories": se.accelerable_categories,
+                        "blocked_categories": se.blocked_categories,
+                        "operators": se.operators,
+                        "metrics": se.metrics,
+                        "fallback_reasons": se.fallback_reasons,
+                        "category_breakdown": se.category_breakdown,
+                    }
+                )
 
-        tasks.append({
-            "name": app_est.app_name or app_est.app_id,
-            "type": "spark",
-            "duration_min": _ms_to_min(app_est.duration_ms),
-            "spark_app_id": app_est.app_id,
-            "stages": stages,
-            "stage_verdicts": app_est.stage_verdicts,
-        })
+        tasks.append(
+            {
+                "name": app_est.app_name or app_est.app_id,
+                "type": "spark",
+                "duration_min": _ms_to_min(app_est.duration_ms),
+                "spark_app_id": app_est.app_id,
+                "stages": stages,
+                "stage_verdicts": app_est.stage_verdicts,
+            }
+        )
 
     # Merge operator summaries
     cat_totals: dict[str, dict[str, int]] = {}
@@ -78,7 +84,9 @@ def generate_report(
             if cat not in cat_totals:
                 cat_totals[cat] = {"total_time_ms": 0, "accelerable_time_ms": 0}
             cat_totals[cat]["total_time_ms"] += entry["total_time_ms"]
-            cat_totals[cat]["accelerable_time_ms"] += entry.get("accelerable_time_ms", 0)
+            cat_totals[cat]["accelerable_time_ms"] += entry.get(
+                "accelerable_time_ms", 0
+            )
 
     operator_summary = sorted(
         [
@@ -98,21 +106,24 @@ def generate_report(
     all_fallbacks = []
     for app_est in estimates:
         for fb in app_est.all_fallbacks:
-            all_fallbacks.append({
-                "stage_id": fb.get("stage_id"),
-                "task": fb.get("task", app_est.app_name),
-                "reason": fb.get("reason", ""),
-                "operator": fb.get("operator", ""),
-            })
+            all_fallbacks.append(
+                {
+                    "stage_id": fb.get("stage_id"),
+                    "task": fb.get("task", app_est.app_name),
+                    "reason": fb.get("reason", ""),
+                    "operator": fb.get("operator", ""),
+                }
+            )
 
     # Recommended config
     recommended_config = _generate_config(estimates, cat_totals)
 
     return {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "version": "0.1.0",
         "pipeline": {
-            "name": pipeline_name or (estimates[0].app_name if estimates else "Unknown"),
+            "name": pipeline_name
+            or (estimates[0].app_name if estimates else "Unknown"),
             "orchestrator": orchestrator,
             "current_duration_min": _ms_to_min(total_duration_ms),
             "cluster": cluster_info or {},

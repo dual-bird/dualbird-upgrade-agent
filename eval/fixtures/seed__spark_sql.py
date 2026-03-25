@@ -1,4 +1,5 @@
 """Seed fixture: PySpark pipeline using spark.sql() with SQL strings."""
+
 from pyspark.sql import SparkSession
 
 spark = SparkSession.builder.appName("spark_sql").getOrCreate()

@@ -64,9 +64,7 @@ def analyze_pyspark_code(
         return json.dumps({"error": "Provide either source_code or file_path"})
 
     if source_code:
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".py", delete=False
-        ) as tmp:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as tmp:
             tmp.write(source_code)
             tmp.flush()
             path = Path(tmp.name)
@@ -244,8 +242,15 @@ def get_recommended_config(
                   "databricks" (cluster spark config), "spark-submit" (--conf flags).
     """
     all_categories = {
-        "sort", "join", "aggregate", "window", "filter",
-        "project", "shuffle", "scan", "write",
+        "sort",
+        "join",
+        "aggregate",
+        "window",
+        "filter",
+        "project",
+        "shuffle",
+        "scan",
+        "write",
     }
     enabled = set(categories) if categories else all_categories
 
@@ -258,7 +263,10 @@ def get_recommended_config(
         result["emr_configuration"] = [
             {
                 "Classification": "spark-defaults",
-                "Properties": {k: str(v).lower() if isinstance(v, bool) else str(v) for k, v in config.items()},
+                "Properties": {
+                    k: str(v).lower() if isinstance(v, bool) else str(v)
+                    for k, v in config.items()
+                },
             }
         ]
         result["note"] = (

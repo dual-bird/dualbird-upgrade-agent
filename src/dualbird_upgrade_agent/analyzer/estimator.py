@@ -33,16 +33,15 @@ from dualbird_upgrade_agent.parser.plan_parser import (
     analyze_plan,
     flatten_operators,
 )
-from dualbird_upgrade_agent.matrix.support import DEFAULT_ACCELERATION_FACTORS
 
 
 @dataclass
 class StageEstimate:
     stage_id: int
-    duration_ms: int              # wall-clock
-    executor_time_ms: int         # total CPU time across tasks
-    verdict: str                  # "full" | "partial" | "none"
-    inferred_profile: list[str]   # what ops this stage likely runs
+    duration_ms: int  # wall-clock
+    executor_time_ms: int  # total CPU time across tasks
+    verdict: str  # "full" | "partial" | "none"
+    inferred_profile: list[str]  # what ops this stage likely runs
     operators: list[dict] = field(default_factory=list)
     metrics: dict = field(default_factory=dict)
     fallback_reasons: list[dict] = field(default_factory=list)
@@ -147,10 +146,7 @@ def _attribute_time(stage: StageInfo, stage_cats: list[str]) -> dict[str, int]:
             weights[cat] = weights.get(cat, 0) + 0.15
 
     total_weight = sum(weights.values()) or 1.0
-    return {
-        cat: int(total_time * w / total_weight)
-        for cat, w in weights.items()
-    }
+    return {cat: int(total_time * w / total_weight) for cat, w in weights.items()}
 
 
 # ── Stage analysis ───────────────────────────────────────────────────────────
@@ -191,15 +187,19 @@ def analyze_stage(
                     blocked_cats[cat].append(r)
                     fallback_reasons.append({"operator": op.node_name, "reason": r})
 
-            op_list.append({
-                "name": op.simple_string[:120],
-                "node_name": op.node_name,
-                "accelerable": op.accelerable,
-                "category": cat,
-                "expressions_supported": op.expressions_supported,
-                "types_supported": op.types_supported,
-                "fallback_reason": op.fallback_reasons[0] if op.fallback_reasons else None,
-            })
+            op_list.append(
+                {
+                    "name": op.simple_string[:120],
+                    "node_name": op.node_name,
+                    "accelerable": op.accelerable,
+                    "category": cat,
+                    "expressions_supported": op.expressions_supported,
+                    "types_supported": op.types_supported,
+                    "fallback_reason": op.fallback_reasons[0]
+                    if op.fallback_reasons
+                    else None,
+                }
+            )
 
     # Determine verdict based on which inferred categories are accelerable
     cats_in_stage = set(stage_cats)
@@ -299,18 +299,22 @@ def estimate_application(
                 if cat in se.accelerable_categories:
                     category_time_totals[cat]["accelerable"] += time_ms
 
-        sql_duration = sql_exec.duration_ms or sum(se.duration_ms for se in stage_estimates)
+        sql_duration = sql_exec.duration_ms or sum(
+            se.duration_ms for se in stage_estimates
+        )
 
-        sql_estimates.append(SQLExecutionEstimate(
-            execution_id=sql_exec.execution_id,
-            description=sql_exec.description,
-            duration_ms=sql_duration,
-            stages=stage_estimates,
-            plan_analysis=plan_analysis,
-            full_stages=full,
-            partial_stages=partial,
-            none_stages=none,
-        ))
+        sql_estimates.append(
+            SQLExecutionEstimate(
+                execution_id=sql_exec.execution_id,
+                description=sql_exec.description,
+                duration_ms=sql_duration,
+                stages=stage_estimates,
+                plan_analysis=plan_analysis,
+                full_stages=full,
+                partial_stages=partial,
+                none_stages=none,
+            )
+        )
 
     total_duration = app.duration_ms or sum(se.duration_ms for se in sql_estimates)
 

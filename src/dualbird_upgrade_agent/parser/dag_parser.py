@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import ast
 import json
-import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -119,7 +118,9 @@ def parse_airflow_dag(path: Path) -> PipelineDefinition:
                         task_id = var_name
 
                     task_type = _classify_operator(func_name)
-                    spark_app = _extract_kwarg(call, "application") or _extract_kwarg(call, "name")
+                    spark_app = _extract_kwarg(call, "application") or _extract_kwarg(
+                        call, "name"
+                    )
 
                     tasks[task_id] = PipelineTask(
                         name=task_id,
@@ -230,17 +231,17 @@ def parse_databricks_workflow(path: Path) -> PipelineDefinition:
             operator = "UnknownTask"
 
         deps = [
-            d.get("task_key", "")
-            for d in t.get("depends_on", [])
-            if d.get("task_key")
+            d.get("task_key", "") for d in t.get("depends_on", []) if d.get("task_key")
         ]
 
-        tasks.append(PipelineTask(
-            name=task_key,
-            type=task_type,
-            operator=operator,
-            dependencies=deps,
-        ))
+        tasks.append(
+            PipelineTask(
+                name=task_key,
+                type=task_type,
+                operator=operator,
+                dependencies=deps,
+            )
+        )
 
     return PipelineDefinition(
         name=job_name,

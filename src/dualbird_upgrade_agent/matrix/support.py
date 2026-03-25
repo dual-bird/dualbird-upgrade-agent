@@ -10,7 +10,6 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-
 # ---------------------------------------------------------------------------
 # Supported Spark physical operators -> DualBird FPGA replacements
 # ---------------------------------------------------------------------------
@@ -27,12 +26,24 @@ SUPPORTED_OPERATORS: dict[str, dict] = {
     "FilterExec": {"category": "filter", "config": "sql.filter.enabled"},
     "ProjectExec": {"category": "project", "config": "sql.project.enabled"},
     "ShuffleExchangeExec": {"category": "shuffle", "config": "sql.shuffle.enabled"},
-    "DataWritingCommandExec": {"category": "write", "config": "sql.parquet.write.enabled"},
+    "DataWritingCommandExec": {
+        "category": "write",
+        "config": "sql.parquet.write.enabled",
+    },
     "WriteFilesExec": {"category": "write", "config": "sql.parquet.write.enabled"},
-    "V2ExistingTableWriteExec": {"category": "write", "config": "sql.parquet.write.enabled"},
-    "InsertIntoHadoopFsRelationCommand": {"category": "write", "config": "sql.parquet.write.enabled"},
+    "V2ExistingTableWriteExec": {
+        "category": "write",
+        "config": "sql.parquet.write.enabled",
+    },
+    "InsertIntoHadoopFsRelationCommand": {
+        "category": "write",
+        "config": "sql.parquet.write.enabled",
+    },
     "AppendDataExec": {"category": "write", "config": "sql.parquet.write.enabled"},
-    "OverwritePartitionsDynamicExec": {"category": "write", "config": "sql.parquet.write.enabled"},
+    "OverwritePartitionsDynamicExec": {
+        "category": "write",
+        "config": "sql.parquet.write.enabled",
+    },
 }
 
 # Operators transparent to the FPGA plugin — they don't affect acceleration
@@ -42,43 +53,92 @@ SUPPORTED_OPERATORS: dict[str, dict] = {
 # passthrough — they are genuine unaccelerated join operators. The FPGA plugin
 # only accelerates SortMergeJoinExec and ShuffledHashJoinExec.
 PASSTHROUGH_OPERATORS: set[str] = {
-    "WholeStageCodegen", "InputAdapter", "Exchange",
+    "WholeStageCodegen",
+    "InputAdapter",
+    "Exchange",
     "BroadcastExchange",
-    "SubqueryExec", "ReusedExchangeExec", "ReusedSubqueryExec",
-    "AdaptiveSparkPlanExec", "CustomShuffleReaderExec", "AQEShuffleReadExec",
-    "ColumnarToRowExec", "RowToColumnarExec", "CollectLimitExec",
-    "TakeOrderedAndProjectExec", "CoalesceExec", "UnionExec",
-    "LocalTableScanExec", "RangeExec", "InMemoryTableScanExec",
-    "ResultQueryStageExec", "ShuffleQueryStageExec",
-    "BroadcastQueryStageExec", "TableCacheQueryStageExec",
+    "SubqueryExec",
+    "ReusedExchangeExec",
+    "ReusedSubqueryExec",
+    "AdaptiveSparkPlanExec",
+    "CustomShuffleReaderExec",
+    "AQEShuffleReadExec",
+    "ColumnarToRowExec",
+    "RowToColumnarExec",
+    "CollectLimitExec",
+    "TakeOrderedAndProjectExec",
+    "CoalesceExec",
+    "UnionExec",
+    "LocalTableScanExec",
+    "RangeExec",
+    "InMemoryTableScanExec",
+    "ResultQueryStageExec",
+    "ShuffleQueryStageExec",
+    "BroadcastQueryStageExec",
+    "TableCacheQueryStageExec",
 }
 
 SUPPORTED_AGG_FUNCTIONS: set[str] = {
-    "sum", "count", "count_if", "avg", "average",
-    "min", "max", "first", "last", "any_value",
-    "bool_and", "bool_or", "bit_and", "bit_or", "bit_xor",
+    "sum",
+    "count",
+    "count_if",
+    "avg",
+    "average",
+    "min",
+    "max",
+    "first",
+    "last",
+    "any_value",
+    "bool_and",
+    "bool_or",
+    "bit_and",
+    "bit_or",
+    "bit_xor",
 }
 
 SUPPORTED_WINDOW_FUNCTIONS: set[str] = {
-    "row_number", "rank", "dense_rank",
-    "percent_rank", "cume_dist", "ntile",
+    "row_number",
+    "rank",
+    "dense_rank",
+    "percent_rank",
+    "cume_dist",
+    "ntile",
 } | SUPPORTED_AGG_FUNCTIONS
 
 # Window functions explicitly NOT supported. The plugin's FpgaWindowExec has a
 # TODO for AggregateWindowFunction support — these fall back to Spark.
 UNSUPPORTED_WINDOW_FUNCTIONS: set[str] = {
-    "lag", "lead", "nth_value",
+    "lag",
+    "lead",
+    "nth_value",
 }
 
 SUPPORTED_JOIN_TYPES: set[str] = {
-    "Inner", "LeftSemi", "LeftAnti",
-    "LeftOuter", "RightOuter", "FullOuter",
+    "Inner",
+    "LeftSemi",
+    "LeftAnti",
+    "LeftOuter",
+    "RightOuter",
+    "FullOuter",
 }
 
 SUPPORTED_PRIMITIVE_TYPES: set[str] = {
-    "boolean", "bool", "byte", "tinyint", "short", "smallint",
-    "int", "integer", "long", "bigint", "float", "double",
-    "string", "date", "timestamp", "timestamp_ntz",
+    "boolean",
+    "bool",
+    "byte",
+    "tinyint",
+    "short",
+    "smallint",
+    "int",
+    "integer",
+    "long",
+    "bigint",
+    "float",
+    "double",
+    "string",
+    "date",
+    "timestamp",
+    "timestamp_ntz",
 }
 
 MAX_DECIMAL_PRECISION = 18
@@ -87,19 +147,41 @@ MAX_DECIMAL_PRECISION = 18
 # Anything NOT in this set triggers fallback to Spark CPU execution.
 SUPPORTED_EXPRESSIONS: set[str] = {
     # Binary arithmetic
-    "Add", "Subtract", "Multiply", "Divide",
+    "Add",
+    "Subtract",
+    "Multiply",
+    "Divide",
     # Bitwise
-    "ShiftLeft", "ShiftRight", "ShiftRightUnsigned", "BitwiseXor",
+    "ShiftLeft",
+    "ShiftRight",
+    "ShiftRightUnsigned",
+    "BitwiseXor",
     # Comparison
-    "LessThan", "LessThanOrEqual", "EqualTo", "EqualNullSafe",
-    "GreaterThan", "GreaterThanOrEqual",
+    "LessThan",
+    "LessThanOrEqual",
+    "EqualTo",
+    "EqualNullSafe",
+    "GreaterThan",
+    "GreaterThanOrEqual",
     # Logical
-    "And", "Or", "Not",
+    "And",
+    "Or",
+    "Not",
     # Unary
-    "UnaryMinus", "IsNull", "IsNotNull", "IsNaN", "NormalizeNaNAndZero",
+    "UnaryMinus",
+    "IsNull",
+    "IsNotNull",
+    "IsNaN",
+    "NormalizeNaNAndZero",
     # Misc
-    "Coalesce", "Cast", "CaseWhen", "DateFormatClass", "SortOrder",
-    "AttributeReference", "Literal", "Alias",
+    "Coalesce",
+    "Cast",
+    "CaseWhen",
+    "DateFormatClass",
+    "SortOrder",
+    "AttributeReference",
+    "Literal",
+    "Alias",
 }
 
 # Common expressions known to trigger fallback. Not exhaustive — any expression
@@ -107,38 +189,94 @@ SUPPORTED_EXPRESSIONS: set[str] = {
 # most often.
 UNSUPPORTED_EXPRESSIONS: set[str] = {
     # UDFs
-    "ScalaUDF", "PythonUDF", "HiveGenericUDF", "HiveSimpleUDF", "JavaUDF",
+    "ScalaUDF",
+    "PythonUDF",
+    "HiveGenericUDF",
+    "HiveSimpleUDF",
+    "JavaUDF",
     # JSON
-    "JsonTuple", "GetJsonObject",
+    "JsonTuple",
+    "GetJsonObject",
     # String functions
-    "RegExpReplace", "RegExpExtract", "StringSplit", "StringTrim",
-    "StringTrimLeft", "StringTrimRight", "Substring", "Concat", "ConcatWs",
-    "Upper", "Lower", "Length", "Like", "RLike",
+    "RegExpReplace",
+    "RegExpExtract",
+    "StringSplit",
+    "StringTrim",
+    "StringTrimLeft",
+    "StringTrimRight",
+    "Substring",
+    "Concat",
+    "ConcatWs",
+    "Upper",
+    "Lower",
+    "Length",
+    "Like",
+    "RLike",
     # Date/time functions (DateFormatClass IS supported, but these are not)
-    "CurrentDate", "CurrentTimestamp",
-    "FromUnixTime", "UnixTimestamp", "ToUnixTimestamp",
-    "DateAdd", "DateSub", "DateDiff",
-    "Year", "Month", "DayOfMonth", "Hour", "Minute", "Second",
+    "CurrentDate",
+    "CurrentTimestamp",
+    "FromUnixTime",
+    "UnixTimestamp",
+    "ToUnixTimestamp",
+    "DateAdd",
+    "DateSub",
+    "DateDiff",
+    "Year",
+    "Month",
+    "DayOfMonth",
+    "Hour",
+    "Minute",
+    "Second",
     # Math functions
-    "Floor", "Ceil", "Round", "Abs", "Sqrt", "Power", "Log", "Exp",
-    "Rand", "Randn", "Greatest", "Least",
+    "Floor",
+    "Ceil",
+    "Round",
+    "Abs",
+    "Sqrt",
+    "Power",
+    "Log",
+    "Exp",
+    "Rand",
+    "Randn",
+    "Greatest",
+    "Least",
     # Complex type constructors / accessors
-    "CreateNamedStruct", "CreateArray", "CreateMap",
-    "GetStructField", "GetArrayItem", "GetMapValue",
-    "ArrayContains", "ArrayDistinct", "ArraySort", "MapKeys", "MapValues",
+    "CreateNamedStruct",
+    "CreateArray",
+    "CreateMap",
+    "GetStructField",
+    "GetArrayItem",
+    "GetMapValue",
+    "ArrayContains",
+    "ArrayDistinct",
+    "ArraySort",
+    "MapKeys",
+    "MapValues",
     # Generators
-    "Explode", "PosExplode", "Generator",
+    "Explode",
+    "PosExplode",
+    "Generator",
     # Unsupported aggregate functions
-    "CollectList", "CollectSet", "ApproxCountDistinct", "HyperLogLogPlusPlus",
-    "Percentile", "ApproxPercentile",
-    "StddevPop", "StddevSamp", "VariancePop", "VarianceSamp",
-    "Corr", "CovPopulation", "CovSample",
+    "CollectList",
+    "CollectSet",
+    "ApproxCountDistinct",
+    "HyperLogLogPlusPlus",
+    "Percentile",
+    "ApproxPercentile",
+    "StddevPop",
+    "StddevSamp",
+    "VariancePop",
+    "VarianceSamp",
+    "Corr",
+    "CovPopulation",
+    "CovSample",
 }
 
 
 # ---------------------------------------------------------------------------
 # Acceleration factor estimates (conservative defaults)
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class AccelerationProfile:
@@ -149,21 +287,22 @@ class AccelerationProfile:
 
 
 DEFAULT_ACCELERATION_FACTORS: dict[str, AccelerationProfile] = {
-    "sort":      AccelerationProfile(2.0, 4.0, 10.0, "high"),
-    "shuffle":   AccelerationProfile(1.5, 3.0,  6.0, "high"),
-    "join":      AccelerationProfile(1.5, 3.0,  8.0, "medium"),
-    "aggregate": AccelerationProfile(1.5, 3.0,  6.0, "high"),
-    "window":    AccelerationProfile(1.5, 2.5,  5.0, "medium"),
-    "scan":      AccelerationProfile(1.5, 2.5,  4.0, "high"),
-    "write":     AccelerationProfile(1.5, 2.5,  4.0, "medium"),
-    "filter":    AccelerationProfile(1.2, 1.8,  3.0, "high"),
-    "project":   AccelerationProfile(1.1, 1.5,  2.5, "medium"),
+    "sort": AccelerationProfile(2.0, 4.0, 10.0, "high"),
+    "shuffle": AccelerationProfile(1.5, 3.0, 6.0, "high"),
+    "join": AccelerationProfile(1.5, 3.0, 8.0, "medium"),
+    "aggregate": AccelerationProfile(1.5, 3.0, 6.0, "high"),
+    "window": AccelerationProfile(1.5, 2.5, 5.0, "medium"),
+    "scan": AccelerationProfile(1.5, 2.5, 4.0, "high"),
+    "write": AccelerationProfile(1.5, 2.5, 4.0, "medium"),
+    "filter": AccelerationProfile(1.2, 1.8, 3.0, "high"),
+    "project": AccelerationProfile(1.1, 1.5, 2.5, "medium"),
 }
 
 
 # ---------------------------------------------------------------------------
 # Support checking
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class SupportVerdict:
@@ -186,11 +325,17 @@ def check_operator(node_name: str) -> SupportVerdict:
     clean = normalize_operator_name(node_name)
     if clean in SUPPORTED_OPERATORS:
         info = SUPPORTED_OPERATORS[clean]
-        return SupportVerdict(supported=True, category=info["category"], operator_name=clean)
+        return SupportVerdict(
+            supported=True, category=info["category"], operator_name=clean
+        )
     if clean in PASSTHROUGH_OPERATORS:
-        return SupportVerdict(supported=True, category="passthrough", operator_name=clean)
+        return SupportVerdict(
+            supported=True, category="passthrough", operator_name=clean
+        )
     return SupportVerdict(
-        supported=False, category="other", operator_name=clean,
+        supported=False,
+        category="other",
+        operator_name=clean,
         fallback_reasons=[f"Unsupported operator: {clean}"],
     )
 

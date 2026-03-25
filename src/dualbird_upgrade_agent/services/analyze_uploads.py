@@ -69,12 +69,14 @@ def run_analysis(
             if tmp_path.suffix == ".py":
                 pyspark = analyze_pyspark_file(tmp_path)
                 if pyspark.predicted_ops:
-                    pyspark_predictions.append({
-                        "file": safe_name,
-                        "operators": analysis_to_operators(pyspark),
-                        "has_udfs": pyspark.has_udfs,
-                        "confidence": pyspark.confidence,
-                    })
+                    pyspark_predictions.append(
+                        {
+                            "file": safe_name,
+                            "operators": analysis_to_operators(pyspark),
+                            "has_udfs": pyspark.has_udfs,
+                            "confidence": pyspark.confidence,
+                        }
+                    )
 
     if not estimates and not pipeline_def and not pyspark_predictions:
         return AnalysisResult(
@@ -90,8 +92,10 @@ def run_analysis(
 
     orchestrator = pipeline_def.orchestrator if pipeline_def else None
     name = pipeline_name or (
-        pipeline_def.name if pipeline_def
-        else estimates[0].app_name if estimates
+        pipeline_def.name
+        if pipeline_def
+        else estimates[0].app_name
+        if estimates
         else None
     )
 

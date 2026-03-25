@@ -36,10 +36,15 @@ SEARCH_QUERIES = [
 def search_github(query: str, per_page: int = 10) -> list[dict]:
     """Search GitHub code via gh CLI."""
     cmd = [
-        "gh", "api", "search/code",
-        "-X", "GET",
-        "-f", f"q={query}",
-        "-f", f"per_page={per_page}",
+        "gh",
+        "api",
+        "search/code",
+        "-X",
+        "GET",
+        "-f",
+        f"q={query}",
+        "-f",
+        f"per_page={per_page}",
     ]
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
@@ -52,9 +57,11 @@ def search_github(query: str, per_page: int = 10) -> list[dict]:
 def download_file(repo_full_name: str, path: str) -> str | None:
     """Download raw file content from GitHub."""
     cmd = [
-        "gh", "api",
+        "gh",
+        "api",
         f"repos/{repo_full_name}/contents/{path}",
-        "-H", "Accept: application/vnd.github.raw+json",
+        "-H",
+        "Accept: application/vnd.github.raw+json",
     ]
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
@@ -74,7 +81,9 @@ def save_manifest(manifest: dict) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--count", type=int, default=50, help="Target number of scripts")
+    parser.add_argument(
+        "--count", type=int, default=50, help="Target number of scripts"
+    )
     args = parser.parse_args()
 
     FIXTURES_DIR.mkdir(parents=True, exist_ok=True)

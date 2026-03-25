@@ -15,7 +15,6 @@ from dualbird_upgrade_agent.server import (
     get_support_matrix,
 )
 
-
 # ---------------------------------------------------------------------------
 # check_operator_support
 # ---------------------------------------------------------------------------
@@ -210,7 +209,10 @@ class TestAnalyzePysparkCode:
         assert result["total_operators"] > 0
         assert result["accelerable_count"] > 0
         assert "recommended_config" in result
-        assert result["recommended_config"]["spark.plugins"] == "com.dualbird.spark.FpgaPlugin"
+        assert (
+            result["recommended_config"]["spark.plugins"]
+            == "com.dualbird.spark.FpgaPlugin"
+        )
 
     def test_code_with_udf(self):
         code = textwrap.dedent("""\

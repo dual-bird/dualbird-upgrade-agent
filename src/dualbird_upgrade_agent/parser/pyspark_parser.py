@@ -28,10 +28,10 @@ from pathlib import Path
 
 @dataclass
 class PredictedOperator:
-    category: str          # sort, shuffle, join, aggregate, etc.
-    source: str            # the code snippet that triggered this
-    line: int              # line number in the source file
-    accelerable: bool      # whether DualBird supports this
+    category: str  # sort, shuffle, join, aggregate, etc.
+    source: str  # the code snippet that triggered this
+    line: int  # line number in the source file
+    accelerable: bool  # whether DualBird supports this
     fallback_reason: str | None = None
 
 
@@ -175,13 +175,17 @@ def analyze_pyspark_file(path: Path) -> PySparkAnalysis:
                     if method_name == "pandas_udf":
                         analysis.has_pandas_udfs = True
 
-                analysis.predicted_ops.append(PredictedOperator(
-                    category=cat,
-                    source=snippet,
-                    line=line,
-                    accelerable=accel,
-                    fallback_reason=f"{'UDF' if cat == 'udf' else 'Unsupported function'}: {method_name}" if not accel else None,
-                ))
+                analysis.predicted_ops.append(
+                    PredictedOperator(
+                        category=cat,
+                        source=snippet,
+                        line=line,
+                        accelerable=accel,
+                        fallback_reason=f"{'UDF' if cat == 'udf' else 'Unsupported function'}: {method_name}"
+                        if not accel
+                        else None,
+                    )
+                )
 
         # Find SQL strings (spark.sql("..."))
         if isinstance(node, ast.Call):
@@ -195,13 +199,17 @@ def analyze_pyspark_file(path: Path) -> PySparkAnalysis:
     for sql in analysis.sql_strings:
         for pattern, cat, accel in SQL_PATTERNS:
             if re.search(pattern, sql, re.IGNORECASE):
-                analysis.predicted_ops.append(PredictedOperator(
-                    category=cat,
-                    source=sql[:80],
-                    line=0,
-                    accelerable=accel,
-                    fallback_reason=None if accel else f"Unsupported SQL function in: {sql[:40]}",
-                ))
+                analysis.predicted_ops.append(
+                    PredictedOperator(
+                        category=cat,
+                        source=sql[:80],
+                        line=0,
+                        accelerable=accel,
+                        fallback_reason=None
+                        if accel
+                        else f"Unsupported SQL function in: {sql[:40]}",
+                    )
+                )
 
     # Also scan raw source for common patterns (catches f-strings, variables, etc.)
     _scan_raw_patterns(source, analysis)
@@ -250,23 +258,39 @@ def _scan_raw_patterns(source: str, analysis: PySparkAnalysis) -> None:
         if re.search(r"register\s*\(\s*['\"].*['\"].*udf", stripped, re.IGNORECASE):
             if not analysis.has_udfs:
                 analysis.has_udfs = True
-                analysis.predicted_ops.append(PredictedOperator(
-                    category="udf",
-                    source=stripped[:100],
-                    line=i,
-                    accelerable=False,
-                    fallback_reason="UDF registration detected",
-                ))
+                analysis.predicted_ops.append(
+                    PredictedOperator(
+                        category="udf",
+                        source=stripped[:100],
+                        line=i,
+                        accelerable=False,
+                        fallback_reason="UDF registration detected",
+                    )
+                )
 
         # Read/write parquet
-        if ".read.parquet" in stripped or "format('parquet')" in stripped or 'format("parquet")' in stripped:
-            analysis.predicted_ops.append(PredictedOperator(
-                category="scan", source=stripped[:100], line=i, accelerable=True,
-            ))
+        if (
+            ".read.parquet" in stripped
+            or "format('parquet')" in stripped
+            or 'format("parquet")' in stripped
+        ):
+            analysis.predicted_ops.append(
+                PredictedOperator(
+                    category="scan",
+                    source=stripped[:100],
+                    line=i,
+                    accelerable=True,
+                )
+            )
         if ".write.parquet" in stripped or ".write.mode(" in stripped:
-            analysis.predicted_ops.append(PredictedOperator(
-                category="write", source=stripped[:100], line=i, accelerable=True,
-            ))
+            analysis.predicted_ops.append(
+                PredictedOperator(
+                    category="write",
+                    source=stripped[:100],
+                    line=i,
+                    accelerable=True,
+                )
+            )
 
 
 def analysis_to_operators(analysis: PySparkAnalysis) -> list[dict]:
@@ -286,15 +310,17 @@ def analysis_to_operators(analysis: PySparkAnalysis) -> list[dict]:
             "udf": "PythonUDF",
         }.get(pred.category, pred.category)
 
-        ops.append({
-            "name": f"[predicted] {pred.source}",
-            "node_name": node_name,
-            "accelerable": pred.accelerable,
-            "category": pred.category,
-            "expressions_supported": pred.accelerable,
-            "types_supported": True,
-            "fallback_reason": pred.fallback_reason,
-            "predicted": True,
-            "source_line": pred.line,
-        })
+        ops.append(
+            {
+                "name": f"[predicted] {pred.source}",
+                "node_name": node_name,
+                "accelerable": pred.accelerable,
+                "category": pred.category,
+                "expressions_supported": pred.accelerable,
+                "types_supported": True,
+                "fallback_reason": pred.fallback_reason,
+                "predicted": True,
+                "source_line": pred.line,
+            }
+        )
     return ops

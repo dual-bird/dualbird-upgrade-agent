@@ -13,13 +13,13 @@ import argparse
 import subprocess
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 
 def run_step(label: str, cmd: list[str]) -> bool:
     """Run a subprocess and print status."""
-    ts = datetime.now(timezone.utc).strftime("%H:%M:%S")
+    ts = datetime.now(UTC).strftime("%H:%M:%S")
     print(f"\n[{ts}] {label}")
     print(f"  $ {' '.join(cmd)}")
 
@@ -57,15 +57,20 @@ def main() -> None:
     cycle = 0
     while True:
         cycle += 1
-        ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
-        print(f"\n{'='*70}")
+        ts = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC")
+        print(f"\n{'=' * 70}")
         print(f"EVAL CYCLE #{cycle} — {ts}")
-        print(f"{'='*70}")
+        print(f"{'=' * 70}")
 
         # Step 1: Fetch new scripts
         run_step(
             "Fetching PySpark scripts from GitHub...",
-            [python, str(eval_dir / "fetch_pyspark_scripts.py"), "--count", str(args.max_scripts)],
+            [
+                python,
+                str(eval_dir / "fetch_pyspark_scripts.py"),
+                "--count",
+                str(args.max_scripts),
+            ],
         )
 
         # Step 2: Run evaluation

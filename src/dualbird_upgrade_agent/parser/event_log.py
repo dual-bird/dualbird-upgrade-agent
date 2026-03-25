@@ -7,8 +7,8 @@ Each line is a JSON object with an "Event" field identifying the event type.
 
 from __future__ import annotations
 
-import json
 import gzip
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -48,6 +48,7 @@ class StageInfo:
 @dataclass
 class SparkPlanNode:
     """A node in the Spark physical plan tree (from sparkPlanInfo)."""
+
     node_name: str
     simple_string: str
     children: list[SparkPlanNode] = field(default_factory=list)
@@ -125,8 +126,7 @@ def _extract_task_metrics(raw_metrics: dict) -> TaskMetrics:
         output_bytes=output_m.get("Bytes Written", 0),
         output_records=output_m.get("Records Written", 0),
         shuffle_read_bytes=(
-            shuffle_r.get("Remote Bytes Read", 0)
-            + shuffle_r.get("Local Bytes Read", 0)
+            shuffle_r.get("Remote Bytes Read", 0) + shuffle_r.get("Local Bytes Read", 0)
         ),
         shuffle_read_records=shuffle_r.get("Total Records Read", 0),
         shuffle_write_bytes=shuffle_w.get("Shuffle Bytes Written", 0),
@@ -156,7 +156,7 @@ def _open_log(path: Path):
     """Open a log file, handling gzip if needed."""
     if path.suffix == ".gz":
         return gzip.open(path, "rt", encoding="utf-8")
-    return open(path, "r", encoding="utf-8")
+    return open(path, encoding="utf-8")
 
 
 def parse_event_log(path: Path) -> SparkApplication:
@@ -209,9 +209,7 @@ def _process_event(app: SparkApplication, event: dict) -> None:
         elif isinstance(props, list):
             # Some Spark versions emit [["key","value"], ...]
             app.properties = {p[0]: p[1] for p in props if len(p) >= 2}
-        app.executor_memory = app.properties.get(
-            "spark.executor.memory", ""
-        )
+        app.executor_memory = app.properties.get("spark.executor.memory", "")
         cores_str = app.properties.get("spark.executor.cores", "0")
         try:
             app.total_cores = int(cores_str)
@@ -223,10 +221,7 @@ def _process_event(app: SparkApplication, event: dict) -> None:
 
     elif evt_type == "SparkListenerJobStart":
         job_id = event.get("Job ID", -1)
-        stage_ids = [
-            s.get("Stage ID", -1)
-            for s in event.get("Stage Infos", [])
-        ]
+        stage_ids = [s.get("Stage ID", -1) for s in event.get("Stage Infos", [])]
         props = event.get("Properties", {})
         sql_exec_id = None
         if isinstance(props, dict):
@@ -251,18 +246,13 @@ def _process_event(app: SparkApplication, event: dict) -> None:
                     name=si.get("Stage Name", ""),
                     num_tasks=si.get("Number of Tasks", 0),
                     parent_ids=si.get("Parent IDs", []),
-                    rdd_ids=[
-                        r.get("RDD ID", -1)
-                        for r in si.get("RDD Info", [])
-                    ],
+                    rdd_ids=[r.get("RDD ID", -1) for r in si.get("RDD Info", [])],
                 )
 
     elif evt_type == "SparkListenerJobEnd":
         job_id = event.get("Job ID", -1)
         if job_id in app.jobs:
-            app.jobs[job_id].completion_time = event.get(
-                "Completion Time", 0
-            )
+            app.jobs[job_id].completion_time = event.get("Completion Time", 0)
 
     elif evt_type == "SparkListenerStageSubmitted":
         si = event.get("Stage Info", {})
@@ -307,9 +297,7 @@ def _process_event(app: SparkApplication, event: dict) -> None:
         app.sql_executions[exec_id] = SQLExecution(
             execution_id=exec_id,
             description=event.get("description", ""),
-            physical_plan_description=event.get(
-                "physicalPlanDescription", ""
-            ),
+            physical_plan_description=event.get("physicalPlanDescription", ""),
             plan_root=plan_root,
             start_time=event.get("time", 0),
         )

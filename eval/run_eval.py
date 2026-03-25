@@ -14,7 +14,7 @@ import argparse
 import json
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 # Add src to path for direct execution
@@ -22,9 +22,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from dualbird_upgrade_agent.server import (
     analyze_pyspark_code,
-    check_expression_support,
-    check_operator_support,
-    get_support_matrix,
 )
 
 
@@ -58,13 +55,17 @@ def evaluate_script(path: Path) -> dict:
                 if result["total_operators"] > 0
                 else 0
             ),
-            "categories": sorted({
-                op["category"]
-                for op in result.get("operators", [])
-                if op.get("accelerable")
-            }),
+            "categories": sorted(
+                {
+                    op["category"]
+                    for op in result.get("operators", [])
+                    if op.get("accelerable")
+                }
+            ),
             "blocked_reasons": [
-                d["reason"] for d in result.get("blocked_details", []) if d.get("reason")
+                d["reason"]
+                for d in result.get("blocked_details", [])
+                if d.get("reason")
             ],
             "elapsed_ms": round(elapsed * 1000),
         }
@@ -135,9 +136,7 @@ def compute_summary(results: list[dict]) -> dict:
     }
 
 
-def compare_with_previous(
-    results_dir: Path, current_summary: dict
-) -> dict | None:
+def compare_with_previous(results_dir: Path, current_summary: dict) -> dict | None:
     """Compare current run with the most recent previous run."""
     previous_runs = sorted(results_dir.glob("eval_*.json"))
     if len(previous_runs) < 2:
@@ -190,8 +189,14 @@ def main() -> None:
     for i, script in enumerate(scripts, 1):
         r = evaluate_script(script)
         status_icon = "+" if r["status"] == "ok" else "!"
-        coverage = f"{r.get('coverage_pct', 0)}%" if r["status"] == "ok" else r.get("error", "?")
-        print(f"  [{status_icon}] {i:3d}/{len(scripts)} {script.name[:60]:<60s} {coverage}")
+        coverage = (
+            f"{r.get('coverage_pct', 0)}%"
+            if r["status"] == "ok"
+            else r.get("error", "?")
+        )
+        print(
+            f"  [{status_icon}] {i:3d}/{len(scripts)} {script.name[:60]:<60s} {coverage}"
+        )
         results.append(r)
 
     summary = compute_summary(results)
@@ -211,7 +216,9 @@ def main() -> None:
         print(f"None:                 {cov['not_accelerable']}")
 
         if summary.get("udfs"):
-            print(f"\nScripts with UDFs:    {summary['udfs']['scripts_with_udfs']} ({summary['udfs']['pct_with_udfs']}%)")
+            print(
+                f"\nScripts with UDFs:    {summary['udfs']['scripts_with_udfs']} ({summary['udfs']['pct_with_udfs']}%)"
+            )
 
         if summary.get("category_frequency"):
             print("\nCategory frequency:")
@@ -225,11 +232,11 @@ def main() -> None:
 
     # Save results
     args.output.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     output_file = args.output / f"eval_{timestamp}.json"
 
     report = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "scripts_dir": str(args.fixtures),
         "summary": summary,
         "results": results,
