@@ -10,3 +10,8 @@ build/
 *.egg
 .uv/
 uv.lock
+
+# Eval: keep seed fixtures, ignore fetched scripts and results
+eval/fixtures/*
+!eval/fixtures/seed__*
+eval/results/
