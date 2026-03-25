@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "dualbird-upgrade-agent": {
+      "command": "dualbird-upgrade-agent",
+      "args": [],
+      "env": {}
+    }
+  }
+}

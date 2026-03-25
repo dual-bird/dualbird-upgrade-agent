@@ -1,0 +1,35 @@
+[project]
+name = "dualbird-upgrade-agent"
+version = "0.1.0"
+description = "AI agent that helps upgrade Spark pipelines to use DualBird FPGA acceleration"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.12"
+dependencies = [
+    "dualbird-estimator",
+    "mcp[cli]>=1.0.0",
+]
+
+[tool.uv.sources]
+dualbird-estimator = { path = "../dualbird-estimator", editable = true }
+
+[project.scripts]
+dualbird-upgrade-agent = "dualbird_upgrade_agent.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dualbird_upgrade_agent"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.25.0",
+    "ruff>=0.9.0",
+]
