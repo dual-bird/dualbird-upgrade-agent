@@ -8,8 +8,8 @@ from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 
-from dualbird_estimator.analyzer.estimator import estimate_application
-from dualbird_estimator.matrix.support import (
+from dualbird_upgrade_agent.analyzer.estimator import estimate_application
+from dualbird_upgrade_agent.matrix.support import (
     MAX_DECIMAL_PRECISION,
     PASSTHROUGH_OPERATORS,
     SUPPORTED_AGG_FUNCTIONS,
@@ -22,12 +22,12 @@ from dualbird_estimator.matrix.support import (
     check_data_type,
     check_operator,
 )
-from dualbird_estimator.parser.event_log import parse_event_logs
-from dualbird_estimator.parser.pyspark_parser import (
+from dualbird_upgrade_agent.parser.event_log import parse_event_logs
+from dualbird_upgrade_agent.parser.pyspark_parser import (
     analysis_to_operators,
     analyze_pyspark_file,
 )
-from dualbird_estimator.report.generator import generate_report
+from dualbird_upgrade_agent.report.generator import generate_report
 
 mcp = FastMCP(
     "dualbird-upgrade-agent",
